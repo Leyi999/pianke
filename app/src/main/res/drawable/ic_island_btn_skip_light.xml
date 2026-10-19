@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 超级岛按钮 · 下一个动作：半透明黑底 + 黑色 ⏭（浅色通知卡片用） -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillAlpha="0.1"
+        android:fillColor="#000000"
+        android:pathData="M24,0A24,24 0,1 1,24 48A24,24 0,1 1,24 0Z" />
+    <path
+        android:fillColor="#0A0A0B"
+        android:pathData="M14.5,17.5L22,24L14.5,30.5Z M22,17.5L29.5,24L22,30.5Z"
+        android:strokeWidth="2.4"
+        android:strokeColor="#0A0A0B"
+        android:strokeLineJoin="round" />
+    <path
+        android:fillColor="#0A0A0B"
+        android:pathData="M33,16.3A1.3,1.3 0,0 1,34.3 17.6V30.4A1.3,1.3 0,0 1,31.7 30.4V17.6A1.3,1.3 0,0 1,33 16.3Z" />
+</vector>

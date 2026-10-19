@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 超级岛 · 休息中：冰蓝沙漏（深色背景用） -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 上下底座 -->
+    <path
+        android:fillColor="#5AC8FA"
+        android:pathData="M6.1,2H17.9A1.1,1.1 0,0 1,17.9 4.2H6.1A1.1,1.1 0,0 1,6.1 2Z M6.1,19.8H17.9A1.1,1.1 0,0 1,17.9 22H6.1A1.1,1.1 0,0 1,6.1 19.8Z" />
+    <!-- 玻璃 -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M7.4,4.2V6.4C7.4,8.9 9.6,10.5 12,12C14.4,10.5 16.6,8.9 16.6,6.4V4.2 M7.4,19.8V17.6C7.4,15.1 9.6,13.5 12,12C14.4,13.5 16.6,15.1 16.6,17.6V19.8"
+        android:strokeWidth="1.8"
+        android:strokeColor="#5AC8FA"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- 沙 -->
+    <path
+        android:fillColor="#5AC8FA"
+        android:pathData="M9.8,8.4H14.2C13.6,9.4 12.8,10.1 12,10.6C11.2,10.1 10.4,9.4 9.8,8.4Z M8.9,19.8C9.1,17.7 10.5,16.6 12,16.2C13.5,16.6 14.9,17.7 15.1,19.8Z" />
+</vector>

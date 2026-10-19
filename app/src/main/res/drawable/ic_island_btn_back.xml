@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 超级岛按钮 · 回到当前动作（取消“下一个动作”）：半透明白底 + 白色 ⏮（深色背景用） -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillAlpha="0.15"
+        android:fillColor="#FFFFFF"
+        android:pathData="M24,0A24,24 0,1 1,24 48A24,24 0,1 1,24 0Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M33.5,17.5L26,24L33.5,30.5Z M26,17.5L18.5,24L26,30.5Z"
+        android:strokeWidth="2.4"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineJoin="round" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M15,16.3A1.3,1.3 0,0 1,16.3 17.6V30.4A1.3,1.3 0,0 1,13.7 30.4V17.6A1.3,1.3 0,0 1,15 16.3Z" />
+</vector>

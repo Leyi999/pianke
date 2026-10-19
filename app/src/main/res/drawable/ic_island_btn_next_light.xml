@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 超级岛按钮 · 开始下一组（休息中）：半透明黑底 + 黑色播放（浅色通知卡片用） -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillAlpha="0.1"
+        android:fillColor="#000000"
+        android:pathData="M24,0A24,24 0,1 1,24 48A24,24 0,1 1,24 0Z" />
+    <path
+        android:fillColor="#0A0A0B"
+        android:pathData="M19.5,16L33,24L19.5,32Z"
+        android:strokeWidth="3"
+        android:strokeColor="#0A0A0B"
+        android:strokeLineJoin="round" />
+</vector>

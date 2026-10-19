@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 超级岛按钮 · 开始下一组（休息已超时）：丁香紫圆底 + 黑色播放（深浅背景通用，同 ✓ 按钮的配色方式） -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="#A78BFA"
+        android:pathData="M24,0A24,24 0,1 1,24 48A24,24 0,1 1,24 0Z" />
+    <path
+        android:fillColor="#0A0A0B"
+        android:pathData="M19.5,16L33,24L19.5,32Z"
+        android:strokeWidth="3"
+        android:strokeColor="#0A0A0B"
+        android:strokeLineJoin="round" />
+</vector>

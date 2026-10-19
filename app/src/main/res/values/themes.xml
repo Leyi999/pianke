@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 深色全面屏主题：系统栏透明，背景贯穿到状态栏与导航栏下方 -->
+    <style name="Theme.FitnessTimer" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:colorPrimary">@color/bg</item>
+        <item name="android:colorAccent">@color/volt</item>
+        <item name="android:colorControlHighlight">@color/ripple</item>
+        <item name="android:colorBackground">@color/bg</item>
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:enforceStatusBarContrast">false</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+        <item name="android:windowSplashScreenBackground">@color/bg</item>
+        <item name="android:alertDialogTheme">@style/Theme.FitnessTimer.Dialog</item>
+    </style>
+
+    <style name="Theme.FitnessTimer.Dialog" parent="@android:style/Theme.Material.Dialog.Alert">
+        <item name="android:colorAccent">@color/volt</item>
+        <item name="android:colorBackground">@color/dialog</item>
+        <item name="android:windowBackground">@drawable/bg_dialog</item>
+        <item name="android:textColorPrimary">@color/text</item>
+        <item name="android:textColorSecondary">@color/text_dim</item>
+    </style>
+</resources>

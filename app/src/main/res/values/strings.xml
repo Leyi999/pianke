@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">间歇片刻</string>
+
+    <string name="rest_label">组间休息</string>
+    <string name="idle_hint">完成一组后自动开始倒计时</string>
+    <string name="start">开始训练</string>
+    <string name="minus_symbol">−</string>
+    <string name="plus_symbol">+</string>
+    <string name="cd_rest_decrease">组间休息减少 15 秒</string>
+    <string name="cd_rest_increase">组间休息增加 15 秒</string>
+    <string name="cd_rest_value">组间休息 %s</string>
+
+    <string name="sound">响铃</string>
+    <string name="vibrate">震动</string>
+    <string name="vibrate_unsupported">此设备不支持震动</string>
+    <string name="undo">撤销</string>
+    <string name="end">结束</string>
+
+    <string name="phase_set">训练中</string>
+    <string name="phase_rest">休息中</string>
+    <string name="phase_over">休息结束</string>
+    <string name="caption_set">本组用时</string>
+    <string name="caption_rest">剩余</string>
+    <string name="caption_over">多休息了</string>
+    <string name="label_exercise">动作</string>
+    <string name="label_set">组</string>
+    <string name="label_next_exercise">下个动作</string>
+    <string name="label_next_set">下一组</string>
+    <string name="cd_current">第 %1$d 个动作，第 %2$d 组</string>
+    <string name="cd_next">下一组：第 %1$d 个动作，第 %2$d 组</string>
+    <string name="finish_set">完成本组</string>
+    <string name="start_set_n">开始第 %d 组</string>
+    <string name="next_exercise">下一个动作</string>
+    <string name="back_to_exercise_n">回到动作 %d</string>
+
+    <string name="end_title">结束训练？</string>
+    <string name="end_message">已练 %1$d 个动作，共完成 %2$d 组，用时 %3$s。</string>
+    <string name="end_ok">结束</string>
+    <string name="end_cancel">继续训练</string>
+
+    <string name="channel_name">训练计时</string>
+    <string name="channel_desc">训练进行中显示当前动作、组数和计时</string>
+    <string name="notif_set">训练中 · 动作 %1$d · 第 %2$d 组</string>
+    <string name="notif_rest">休息中 · 下一组 动作 %1$d · 第 %2$d 组</string>
+    <string name="notif_over">休息结束 · 下一组 动作 %1$d · 第 %2$d 组</string>
+    <string name="island_set">第%d组</string>
+    <string name="island_cd">%1$s，%2$s</string>
+
+    <string name="duration_s">%d秒</string>
+    <string name="duration_m">%d分钟</string>
+    <string name="duration_ms">%1$d分%2$d秒</string>
+    <string name="duration_h">%d小时</string>
+    <string name="duration_hm">%1$d小时%2$d分钟</string>
+</resources>

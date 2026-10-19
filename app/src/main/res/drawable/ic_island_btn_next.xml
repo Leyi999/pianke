@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 超级岛按钮 · 开始下一组（休息中，外圈由系统画倒计时圆环）：半透明白底 + 白色播放（深色背景用） -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillAlpha="0.15"
+        android:fillColor="#FFFFFF"
+        android:pathData="M24,0A24,24 0,1 1,24 48A24,24 0,1 1,24 0Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M19.5,16L33,24L19.5,32Z"
+        android:strokeWidth="3"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineJoin="round" />
+</vector>

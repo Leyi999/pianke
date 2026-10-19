@@ -1,0 +1,15 @@
+.gradle/
+.kotlin/
+build/
+local.properties
+.idea/
+*.iml
+# 发布签名密钥，请单独备份，不要提交到公开仓库
+keystore/
+*.jks
+*.keystore
+# 安装包发布在 GitHub Releases，不进仓库
+*.apk
+*.aab
+# Kiro 本地文件（含已过时的需求文档）
+.kiro/
