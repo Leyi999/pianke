@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 应用图标：黑底 + 荧光绿 3/4 圆环（与界面计时圆环一致） -->
+<!-- 应用图标：黑底 + 荧光绿 3/4 圆环（与界面计时圆环一致），环内是上了片的杠铃（与超级岛上的杠铃一致：内片高、外片矮） -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -16,4 +16,8 @@
         android:strokeWidth="7"
         android:strokeColor="#CCFF00"
         android:strokeLineCap="round" />
+    <!-- 杠铃：杠（两端各露出一截）+ 两侧各两片 -->
+    <path
+        android:fillColor="#CCFF00"
+        android:pathData="M41.6,52.6H66.4A1.4,1.4 0 0 1 66.4,55.4H41.6A1.4,1.4 0 0 1 41.6,52.6ZM46.8,46.6A1.6,1.6 0 0 1 50,46.6V61.4A1.6,1.6 0 0 1 46.8,61.4ZM58,46.6A1.6,1.6 0 0 1 61.2,46.6V61.4A1.6,1.6 0 0 1 58,61.4ZM42.2,49.3A1.6,1.6 0 0 1 45.4,49.3V58.7A1.6,1.6 0 0 1 42.2,58.7ZM62.6,49.3A1.6,1.6 0 0 1 65.8,49.3V58.7A1.6,1.6 0 0 1 62.6,58.7Z" />
 </vector>
