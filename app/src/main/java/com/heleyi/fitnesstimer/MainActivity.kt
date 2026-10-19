@@ -202,12 +202,12 @@ class MainActivity : Activity(), WorkoutSession.Listener {
         btnEnd.visibility = View.VISIBLE
         btnUndo.isEnabled = w.canUndo
 
-        // 训练中：荧光绿；休息倒计时：冰蓝；超时：丁香紫
+        // 训练中：白；休息倒计时：灰；超时：白（圆环整圈呼吸）
         val color = getColor(
             when {
-                !s.resting -> R.color.volt
-                overtime -> R.color.lilac
-                else -> R.color.ice
+                !s.resting -> R.color.tone_set
+                overtime -> R.color.tone_over
+                else -> R.color.tone_rest
             }
         )
         when {

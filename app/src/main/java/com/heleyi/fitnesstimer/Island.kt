@@ -30,10 +30,13 @@ import kotlin.math.roundToInt
  *
  * 杠铃代表“这一组”：杠中间的数字是第几个动作，两侧杠铃片数是第几组（第 4 组起都是 4 片），越练越“重”。
  * 训练中大岛显示本组的杠铃；休息中大岛是沙漏，外圈进度环随剩余时间收缩，展开后的杠铃是下一组；
- * 休息超时是闪电，满圈。三个阶段各用一种颜色：训练 荧光绿、休息 冰蓝、超时 丁香紫（不用红色，避免紧迫感），
+ * 休息超时是闪电，满圈。配色只用白灰黑：训练 白、休息 灰、超时 白（与训练靠图标和“+”区分），
  * 计时数字也按阶段着色。系统计时器在大岛上只能画成白色，所以大岛的计时是文字，由应用亮屏时每秒刷新
  * （关闭文字切换动效，否则整串数字一起闪）；展开态的大号计时用系统计时器（等宽数字，变化的那一位滚动），
  * 切换阶段时的颜色处理见 [param] 的 recolor。
+ *
+ * 国内版 HyperOS 只给通过小米超级岛授权的应用显示这套自定义岛（未授权时退化为普通通知），所以 Android 16+
+ * 改走实时更新，由系统生成岛（见 TimerService.liveUpdate 与 [smallIcon]），这里的自定义岛只在不能用实时更新时使用。
  */
 object Island {
 
@@ -77,15 +80,15 @@ object Island {
     /** 岛上的三个阶段。 */
     enum class Phase(
         val key: String,
-        /** 深色背景（岛、深色通知卡片）用的颜色，与 colors.xml 中的 volt / ice / lilac 一致。 */
+        /** 深色背景（岛、深色通知卡片）用的颜色，与 colors.xml 中的 tone_set / tone_rest / tone_over 一致。 */
         val color: String,
-        /** 浅色通知卡片用的深一档颜色。 */
+        /** 浅色通知卡片用的深色。 */
         val colorLight: String,
         val label: Int,
     ) {
-        SET("set", "#CCFF00", "#6B9900", R.string.phase_set),
-        REST("rest", "#5AC8FA", "#1E88C8", R.string.phase_rest),
-        OVER("over", "#A78BFA", "#6C44E4", R.string.phase_over);
+        SET("set", "#F5F5F7", "#1C1C1E", R.string.phase_set),
+        REST("rest", "#A1A1A6", "#6E6E73", R.string.phase_rest),
+        OVER("over", "#F5F5F7", "#1C1C1E", R.string.phase_over);
 
         /** 进度环未走到的部分（底圈）：同色 25% 不透明度。 */
         val track: String get() = "#40" + color.drop(1)
@@ -215,6 +218,27 @@ object Island {
             putBundle(PICS, pics)
             putBundle(ACTIONS, actions)
         }
+    }
+
+    /**
+     * 实时更新的通知小图标。HyperOS 把它原样画在系统样式超级岛的左侧（状态栏里只取轮廓着色）：
+     * 训练中是本组的杠铃，休息 / 超时是带进度环的沙漏 / 闪电。
+     */
+    fun smallIcon(context: Context, f: Frame): Icon = Icon.createWithBitmap(
+        when (f.phase) {
+            Phase.SET -> barbell(context, f, f.phase.color)
+            Phase.REST -> ringIcon(context, R.drawable.ic_island_rest, f)
+            Phase.OVER -> ringIcon(context, R.drawable.ic_island_over, f)
+        },
+    )
+
+    /** 实时更新展开后标准通知卡片上的按钮：本阶段的主操作在前，下一个动作 / 回到当前动作在后。 */
+    fun standardActions(context: Context, f: Frame, intents: Intents): List<Notification.Action> {
+        val resting = f.phase != Phase.SET
+        return listOf(
+            action(primaryTitle(context, f), if (resting) intents.nextSet else intents.finishSet),
+            action(exerciseTitle(context, f), if (resting) intents.toggleExercise else intents.finishExercise),
+        )
     }
 
     /**

@@ -18,8 +18,9 @@ import android.util.Log
 
 /**
  * 训练期间的前台服务：切到后台/锁屏后进程继续存活；休息倒计时期间持有 CPU 唤醒锁，归零时准时提醒；
- * 通知栏显示当前动作、组数与计时（秒数由系统计时器走动）。小米超级岛可用时，亮屏期间每秒刷新岛上的计时和进度环；
- * 岛上的按钮可以直接完成本组 / 开始下一组 / 换到下一个动作。训练结束时移除通知并停止。
+ * 通知栏显示当前动作、组数与计时（秒数由系统计时器走动）。Android 16+ 发“实时更新”，HyperOS 会把它放上超级岛；
+ * 否则在小米超级岛可用时发自定义岛。两种岛都在亮屏期间每秒刷新计时；岛上（或展开后的通知卡片上）的按钮
+ * 可以直接完成本组 / 开始下一组 / 换到下一个动作。训练结束时移除通知并停止。
  */
 class TimerService : Service(), WorkoutSession.Listener {
 
@@ -34,8 +35,15 @@ class TimerService : Service(), WorkoutSession.Listener {
     private var lastStartId = 0
 
     /**
-     * 超级岛可用（HyperOS 3+ 且有焦点通知权限）。此时不申请 Android 实时更新：HyperOS 会把实时更新通知
-     * 自动套用系统模板上岛（只显示通知标题），自定义的岛就不生效了。
+     * Android 16+ 且允许实时更新：申请“实时更新”。HyperOS 会把实时更新通知自动放上超级岛（系统样式：
+     * 左边是通知小图标，右边是 shortCriticalText，展开后是标准通知卡片），不需要小米的超级岛授权；
+     * 系统会丢弃通知里的自定义岛参数，所以这时不再附带。
+     */
+    private var liveUpdate = false
+
+    /**
+     * 自定义超级岛（不走实时更新，且 HyperOS 3+、有焦点通知权限）。国内版 HyperOS 还要求应用通过小米的
+     * 超级岛授权，否则系统退化为普通通知。
      */
     private var island = false
 
@@ -61,9 +69,11 @@ class TimerService : Service(), WorkoutSession.Listener {
         )
     }
     private var lastIslandActionAt = Long.MIN_VALUE / 2
-    private val screenOnReceiver = object : BroadcastReceiver() {
+
+    /** 亮屏：立即刷新一次并恢复每秒刷新。熄屏：实时更新把计时换成阶段文字，息屏显示不会停在旧时间上。 */
+    private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (running) onWorkoutChanged()
+            if (running) refresh(force = true)
         }
     }
 
@@ -74,19 +84,20 @@ class TimerService : Service(), WorkoutSession.Listener {
         notificationManager = getSystemService(NotificationManager::class.java)
         powerManager = getSystemService(PowerManager::class.java)
         createChannel()
-        val protocol = Island.protocol(this)
-        island = protocol >= 3 && Island.hasPermission(this)
-        if (island) {
-            // 熄屏时岛不可见，不再每秒刷新；亮屏时立即刷新一次
-            registerReceiver(screenOnReceiver, IntentFilter(Intent.ACTION_SCREEN_ON), RECEIVER_NOT_EXPORTED)
-        }
-        val promoted = Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA &&
+        liveUpdate = Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA &&
             notificationManager.canPostPromotedNotifications()
-        Log.i(TAG, "focus protocol=$protocol island=$island liveUpdates=$promoted")
+        val protocol = Island.protocol(this)
+        island = !liveUpdate && protocol >= 3 && Island.hasPermission(this)
+        if (island || liveUpdate) {
+            // 熄屏时岛不可见，不再每秒刷新
+            val filter = IntentFilter(Intent.ACTION_SCREEN_ON).apply { addAction(Intent.ACTION_SCREEN_OFF) }
+            registerReceiver(screenReceiver, filter, RECEIVER_NOT_EXPORTED)
+        }
+        Log.i(TAG, "focus protocol=$protocol liveUpdate=$liveUpdate island=$island")
     }
 
     override fun onDestroy() {
-        if (island) unregisterReceiver(screenOnReceiver)
+        if (island || liveUpdate) unregisterReceiver(screenReceiver)
         WorkoutSession.removeListener(this)
         releaseWakeLock()
         super.onDestroy()
@@ -139,7 +150,10 @@ class TimerService : Service(), WorkoutSession.Listener {
         }
     }
 
-    override fun onWorkoutChanged() {
+    override fun onWorkoutChanged() = refresh(force = false)
+
+    /** @param force 亮屏 / 熄屏时即使阶段没变也重发一次（熄屏后不再每秒刷新）。 */
+    private fun refresh(force: Boolean) {
         val w = WorkoutSession.workout ?: return shutdown()
         val now = WorkoutSession.now()
         updateWakeLock(w, now)
@@ -147,9 +161,9 @@ class TimerService : Service(), WorkoutSession.Listener {
         val key = "${w.state}|$overtime|${w.restMs}"
         val changed = key != lastNotificationKey
         // 通知栏和展开态的计时由系统计时器走动，只在阶段、序号或休息时长变化时更新；
-        // 大岛上按阶段着色的计时文字和进度环由应用绘制，亮屏时每秒刷新
-        val islandTicking = island && powerManager.isInteractive
-        if (!changed && !islandTicking) return
+        // 岛上的计时文字和进度环由应用提供，亮屏时每秒刷新
+        val ticking = (island || liveUpdate) && powerManager.isInteractive
+        if (!changed && !ticking && !force) return
         var expand = false
         if (changed) {
             lastNotificationKey = key
@@ -225,7 +239,7 @@ class TimerService : Service(), WorkoutSession.Listener {
     private fun buildNotification(w: Workout?, now: Long, expand: Boolean = false, reopen: Boolean = true): Notification {
         val builder = Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_timer)
-            .setColor(getColor(R.color.volt))
+            .setColor(getColor(R.color.accent))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setVisibility(Notification.VISIBILITY_PUBLIC)
@@ -254,11 +268,7 @@ class TimerService : Service(), WorkoutSession.Listener {
             .setWhen(frame.timerWhen)
             .setUsesChronometer(true)
             .setChronometerCountDown(frame.phase == Island.Phase.REST)
-        // Android 16+：申请“实时更新”（与 NotificationCompat.setRequestPromotedOngoing 相同的 extra），
-        // 在状态栏胶囊和锁屏顶部持续显示。超级岛可用时不申请，见 [island]。
-        if (!island && Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
-            builder.addExtras(Bundle().apply { putBoolean(EXTRA_REQUEST_PROMOTED_ONGOING, true) })
-        }
+        if (liveUpdate) return liveUpdateNotification(builder, frame)
         builder.addExtras(Island.extras(this, frame, islandIntents))
         val notification = builder.build()
         // 切到训练中 / 超时（包括新训练的第一帧）：让系统按新颜色重建展开态计时器的逐位滚动效果（见 Island.param），
@@ -268,6 +278,21 @@ class TimerService : Service(), WorkoutSession.Listener {
         // 小米超级岛 / 焦点通知：岛、锁屏、息屏展示计时；休息结束时自动展开提醒
         notification.extras.putString(Island.KEY_PARAM, Island.param(this, frame, reopen, recolor))
         return notification
+    }
+
+    /**
+     * 实时更新（与 NotificationCompat.setRequestPromotedOngoing 相同的 extra）：状态栏胶囊、锁屏顶部持续显示，
+     * HyperOS 上由系统生成超级岛。大岛左边的通知小图标换成本组的杠铃 / 带进度环的阶段图标，右边是计时；
+     * 熄屏后不再每秒刷新，计时换成阶段文字（息屏显示用的也是这段文字）。
+     */
+    private fun liveUpdateNotification(builder: Notification.Builder, f: Island.Frame): Notification {
+        builder.setSmallIcon(Island.smallIcon(this, f))
+            .addExtras(Bundle().apply { putBoolean(EXTRA_REQUEST_PROMOTED_ONGOING, true) })
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
+            builder.setShortCriticalText(if (powerManager.isInteractive) f.time else getString(f.phase.label))
+        }
+        Island.standardActions(this, f, islandIntents).forEach { builder.addAction(it) }
+        return builder.build()
     }
 
 

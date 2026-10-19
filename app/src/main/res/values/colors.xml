@@ -12,10 +12,11 @@
     <color name="text">#F5F5F7</color>
     <color name="text_dim">#8E8E93</color>
     <color name="text_mute">#6E6E73</color>
-    <!-- 强调色：训练中 荧光绿 / 休息 冰蓝 / 休息超时 丁香紫（不用红色，避免紧迫感） -->
-    <color name="volt">#CCFF00</color>
-    <color name="on_volt">#0A0A0B</color>
-    <color name="ice">#5AC8FA</color>
-    <color name="lilac">#A78BFA</color>
+    <!-- 强调色只用白灰黑：主按钮白底黑字；阶段色 训练中 白 / 休息倒计时 灰 / 休息超时 白 -->
+    <color name="accent">#F5F5F7</color>
+    <color name="on_accent">#0A0A0B</color>
+    <color name="tone_set">#F5F5F7</color>
+    <color name="tone_rest">#A1A1A6</color>
+    <color name="tone_over">#F5F5F7</color>
     <color name="ic_launcher_background">#0A0A0B</color>
 </resources>
