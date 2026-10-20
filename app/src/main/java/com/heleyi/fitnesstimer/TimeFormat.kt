@@ -19,6 +19,11 @@ object TimeFormat {
         return if (remaining > 0L) mmss(ceilSeconds(remaining)) else "+" + mmss(-remaining / 1000L)
     }
 
+    /** 去掉分钟的前导零：“01:30” → “1:30”，“+00:12” → “+0:12”；位数少，同样的宽度里数字能画得更大。 */
+    fun compact(timer: String): String = timer.replaceFirst(LEADING_ZERO, "$1")
+
+    private val LEADING_ZERO = Regex("""^(\+?)0(?=\d:)""")
+
     /** HH:MM:SS，用于总用时。 */
     fun hhmmss(ms: Long): String {
         val s = (ms / 1000L).coerceAtLeast(0L)

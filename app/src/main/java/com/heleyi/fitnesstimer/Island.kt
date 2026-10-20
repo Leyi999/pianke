@@ -16,6 +16,7 @@ import android.os.Bundle
 import android.provider.Settings
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.ByteArrayOutputStream
 import kotlin.math.roundToInt
 
 /**
@@ -77,6 +78,29 @@ object Island {
     private const val PLATE_GAP = 0.6f // 杠铃片间距
     private val PLATE_H = floatArrayOf(16f, 13f, 10f, 7.5f) // 由内到外各片高度，最多 4 片
 
+    // 实时更新的图标，几何取自应用图标（ic_launcher_foreground，108 网格）：圆环半径 23、线宽 7，外径 53
+    private const val LIVE_ICON_DP = 48f // 按卡片里最大的显示尺寸画，岛上缩小显示
+    private const val LIVE_GRID = 53f
+    private const val LIVE_RING_R = 23f
+    private const val LIVE_RING_T = 7f
+    private const val LIVE_BAR_T = 2.8f
+    private const val LIVE_TRACK_ALPHA = 0x40 // 圆环未走到的部分：同色 25%
+    private const val LIVE_COLLAR_W = 1.6f // 空杠的卡箍：比杠铃片窄、矮很多，一看就是没上片
+    private const val LIVE_COLLAR_H = 6.4f
+    private val LIVE_PLATES = arrayOf(
+        Plates(grip = 4f, width = 3.2f, gap = 0f, barHalf = 13.8f, heights = floatArrayOf(18f)),
+        Plates(grip = 4f, width = 3.2f, gap = 1.4f, barHalf = 13.8f, heights = floatArrayOf(18f, 12.6f)), // 同应用图标
+        Plates(grip = 3.6f, width = 2.8f, gap = 1.4f, barHalf = 16.2f, heights = floatArrayOf(18f, 15.5f, 13f)),
+        // 片多时高度只递减一点：落差大（18 → 7.5）会像一段声波，落差小才像一摞杠铃片
+        Plates(grip = 3f, width = 2.4f, gap = 1.2f, barHalf = 17.4f, heights = floatArrayOf(18f, 16f, 14f, 12f)),
+    )
+
+    // 实时更新右侧的大号计时
+    private const val TIME_H_DP = 48f // 系统大图标的高度（notification_right_icon_size）
+    private const val TIME_TEXT_H = 0.72f // 数字（字形高度）最多占的高度比例
+    private const val TIME_SHADOW_DP = 2.5f // 数字阴影的模糊半径
+    private const val TIME_SHADOW_COLOR = 0x40000000 // 25% 黑
+
     /** 岛上的三个阶段。 */
     enum class Phase(
         val key: String,
@@ -107,6 +131,11 @@ object Island {
         /** 杠铃代表的那一组：训练中为本组，休息中 / 超时为下一组。 */
         val exercise: Int,
         val set: Int,
+        /**
+         * 已经练到第几组（实时更新图标的杠铃片数）：训练中为本组；休息中 / 超时为刚完成的那组，开始下一组时才加一片；
+         * 休息中换到下个动作时为 0（空杠）。
+         */
+        val setsDone: Int,
         /** 当前动作序号（“回到动作 N”）。 */
         val currentExercise: Int,
         /** 休息中 / 超时：下一组已换到下个动作。 */
@@ -147,6 +176,8 @@ object Island {
             },
             exercise = w.upcomingExercise,
             set = w.upcomingSet,
+            // 休息中点了“下一个动作”：下一组是新动作的第 1 组，杠上还没有片
+            setsDone = if (s.resting && s.nextNewExercise) 0 else s.set,
             currentExercise = s.exercise,
             nextExercise = s.resting && s.nextNewExercise,
             timerWhen = when (phase) {
@@ -221,25 +252,116 @@ object Island {
     }
 
     /**
-     * 实时更新的通知小图标。HyperOS 把它原样画在系统样式超级岛的左侧（状态栏里只取轮廓着色）：
-     * 训练中是本组的杠铃，休息 / 超时是带进度环的沙漏 / 闪电。
+     * 实时更新的图标：大岛、小岛、息屏，以及岛展开态和锁屏卡片的左上角（通知请求了 preferSmallIcon）。
+     * 与应用图标同一套造型——圆环里一副杠铃：杠铃片数 = 练到第几组（第 4 组起都是 4 片；休息时还是刚完成的那组，
+     * 开始下一组时才加一片）；圆环表示阶段，
+     * 训练中与应用图标一样是 3/4 圈，休息中从 12 点起随剩余时间收缩，超时是满圈。休息中整体为灰色。
+     * 透明底：卡片里系统会按深浅给小图标着色；岛上原样显示。
      */
-    fun smallIcon(context: Context, f: Frame): Icon = Icon.createWithBitmap(
-        when (f.phase) {
-            Phase.SET -> barbell(context, f, f.phase.color)
-            Phase.REST -> ringIcon(context, R.drawable.ic_island_rest, f)
-            Phase.OVER -> ringIcon(context, R.drawable.ic_island_over, f)
-        },
-    )
+    fun smallIcon(context: Context, f: Frame): Icon {
+        val size = (LIVE_ICON_DP * context.resources.displayMetrics.density).roundToInt()
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val u = size / LIVE_GRID
+        val c = size / 2f
+        val color = Color.parseColor(f.phase.color)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = LIVE_RING_T * u
+            strokeCap = Paint.Cap.ROUND
+            this.color = (color and 0x00FFFFFF) or (LIVE_TRACK_ALPHA shl 24)
+        }
+        val r = LIVE_RING_R * u
+        val oval = RectF(c - r, c - r, c + r, c + r)
+        canvas.drawOval(oval, paint)
+        paint.color = color
+        val sweep = when (f.phase) {
+            Phase.SET -> 270f
+            Phase.REST -> 360f * f.fraction
+            Phase.OVER -> 360f
+        }
+        if (sweep >= 360f) canvas.drawOval(oval, paint) else if (sweep > 0f) canvas.drawArc(oval, -90f, sweep, false, paint)
+        // 杠铃：杠（两端露出一截）+ 两侧杠铃片，由内到外逐片变矮；片数越多片越窄，整副杠铃始终留在圆环里
+        paint.style = Paint.Style.FILL
+        val bar = LIVE_BAR_T / 2f * u
+        if (f.setsDone <= 0) {
+            // 换了新动作还没开始：空杠，只有两个卡箍
+            val half = LIVE_PLATES[0].barHalf * u
+            canvas.drawRoundRect(c - half, c - bar, c + half, c + bar, bar, bar, paint)
+            val x0 = LIVE_PLATES[0].grip * u
+            val x1 = x0 + LIVE_COLLAR_W * u
+            val h = LIVE_COLLAR_H / 2f * u
+            val cr = LIVE_COLLAR_W / 2f * u
+            canvas.drawRoundRect(c + x0, c - h, c + x1, c + h, cr, cr, paint)
+            canvas.drawRoundRect(c - x1, c - h, c - x0, c + h, cr, cr, paint)
+            return pngIcon(bitmap)
+        }
+        val p = LIVE_PLATES[f.setsDone.coerceAtMost(LIVE_PLATES.size) - 1]
+        canvas.drawRoundRect(c - p.barHalf * u, c - bar, c + p.barHalf * u, c + bar, bar, bar, paint)
+        val pr = p.width / 2f * u
+        p.heights.forEachIndexed { i, height ->
+            val x0 = (p.grip + i * (p.width + p.gap)) * u
+            val x1 = x0 + p.width * u
+            val h = height / 2f * u
+            canvas.drawRoundRect(c + x0, c - h, c + x1, c + h, pr, pr, paint)
+            canvas.drawRoundRect(c - x1, c - h, c - x0, c + h, pr, pr, paint)
+        }
+        return pngIcon(bitmap)
+    }
 
-    /** 实时更新展开后标准通知卡片上的按钮：本阶段的主操作在前，下一个动作 / 回到当前动作在后。 */
+    /** 一侧杠铃片的排布（单位同应用图标的 108 网格）：杠中心到内侧片的距离、片宽、片距、杠的半长、由内到外各片高度。 */
+    private class Plates(val grip: Float, val width: Float, val gap: Float, val barHalf: Float, val heights: FloatArray)
+
+    /** 位图大图标 / 小图标会被系统缩到很小再放大显示，发虚；PNG 数据不会被缩小。 */
+    private fun pngIcon(bitmap: Bitmap): Icon {
+        val png = ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
+        return Icon.createWithData(png, 0, png.size)
+    }
+
+    /**
+     * 实时更新展开后（岛的展开态、锁屏和通知栏的卡片）的按钮：左边下一个动作 / 回到当前动作，右边本阶段的主操作。
+     * 与 HyperOS 对话框“取消在左、确定在右”一致，最常点的主操作在右手拇指一侧；Android 17 起主按钮实心、次按钮描边。
+     */
     fun standardActions(context: Context, f: Frame, intents: Intents): List<Notification.Action> {
         val resting = f.phase != Phase.SET
         return listOf(
-            action(primaryTitle(context, f), if (resting) intents.nextSet else intents.finishSet),
-            action(exerciseTitle(context, f), if (resting) intents.toggleExercise else intents.finishExercise),
+            action(exerciseTitle(context, f), if (resting) intents.toggleExercise else intents.finishExercise, primary = false),
+            action(primaryTitle(context, f), if (resting) intents.nextSet else intents.finishSet, primary = true),
         )
     }
+
+    /**
+     * 实时更新右侧的大号计时，画成图片（标准通知模板里的文字不能调字号）：系统大图标最高 48dp、最宽 16:9。
+     * 透明底，白色粗体窄体数字，休息中为灰色，靠右对齐到卡片内容的右边缘；分钟不补零（“1:30”），数字更大。
+     * 同一张图也会出现在浅色卡片上（浅色模式的通知栏、浅色壁纸的锁屏），所以数字带一圈很淡的阴影，
+     * 像锁屏时钟一样，在深色玻璃上看不出来，在浅色底上能勾出轮廓。
+     */
+    fun timeImage(context: Context, f: Frame): Icon {
+        val density = context.resources.displayMetrics.density
+        val h = (TIME_H_DP * density).roundToInt()
+        val w = h * 16 / 9
+        val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val time = TimeFormat.compact(f.time)
+        val shadow = TIME_SHADOW_DP * density
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor(f.phase.color)
+            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+            fontFeatureSettings = "tnum"
+            textSize = 100f
+            setShadowLayer(shadow, 0f, shadow / 4f, TIME_SHADOW_COLOR)
+        }
+        // 字号按同样位数的“0:00”定，走秒时大小不跳；位数变多（超时的“+”、10 分钟以上）时缩小，保证放得下
+        val ref = time.replace(DIGIT, "0")
+        val refInk = Rect().also { paint.getTextBounds(ref, 0, ref.length, it) }
+        val ink = Rect().also { paint.getTextBounds(time, 0, time.length, it) }
+        val k = minOf((w - 2 * shadow) / refInk.width(), h * TIME_TEXT_H / refInk.height())
+        paint.textSize = 100f * k
+        canvas.drawText(time, w - shadow - ink.right * k, h / 2f - refInk.exactCenterY() * k, paint)
+        return pngIcon(bitmap)
+    }
+
+    private val DIGIT = Regex("\\d")
 
     /**
      * @param reopen 阶段变化：即使用户之前划掉过岛也重新显示（默认划掉后同一通知 24 小时内不再上岛）
@@ -429,6 +551,9 @@ object Island {
     /** Action 只提供点击后的 PendingIntent，图标由 JSON 中的 actionIcon 指定。 */
     private fun action(title: String, intent: PendingIntent): Notification.Action =
         Notification.Action.Builder(null as Icon?, title, intent).build()
+
+    private fun action(title: String, intent: PendingIntent, primary: Boolean): Notification.Action =
+        ActionEmphasis.apply(Notification.Action.Builder(null as Icon?, title, intent), primary).build()
 
     /** 焦点通知协议版本：3 及以上支持超级岛（HyperOS 3+）；非小米设备为 0。 */
     fun protocol(context: Context): Int =

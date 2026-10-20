@@ -268,7 +268,7 @@ class TimerService : Service(), WorkoutSession.Listener {
             .setWhen(frame.timerWhen)
             .setUsesChronometer(true)
             .setChronometerCountDown(frame.phase == Island.Phase.REST)
-        if (liveUpdate) return liveUpdateNotification(builder, frame)
+        if (liveUpdate) return liveUpdateNotification(builder, w, frame)
         builder.addExtras(Island.extras(this, frame, islandIntents))
         val notification = builder.build()
         // 切到训练中 / 超时（包括新训练的第一帧）：让系统按新颜色重建展开态计时器的逐位滚动效果（见 Island.param），
@@ -284,12 +284,59 @@ class TimerService : Service(), WorkoutSession.Listener {
      * 实时更新（与 NotificationCompat.setRequestPromotedOngoing 相同的 extra）：状态栏胶囊、锁屏顶部持续显示，
      * HyperOS 上由系统生成超级岛。大岛左边的通知小图标换成本组的杠铃 / 带进度环的阶段图标，右边是计时；
      * 熄屏后不再每秒刷新，计时换成阶段文字（息屏显示用的也是这段文字）。
+     *
+     * 展开态（点开岛）就是这条通知的展开样式。Android 17 起用 MetricStyle，并排三个指标，数值是系统文字（28sp），
+     * 颜色随卡片深浅自动切换、计时由系统走秒：计时（训练 / 休息 / 超时）、第几个动作、第几组（休息中为下一组）。
+     * 标题是一句随阶段变化的短语，系统在后面接上应用名：训练“Light weight”，休息“Breathe”，超时“Ready when you are”。
+     * 左上角的图标与应用图标同款（杠铃片数 = 第几组，圆环 = 阶段）。最下面两个按钮。
+     * 没有 MetricStyle 时退回标准模板：计时画成右边的图片（标准模板的文字不能调字号）。
      */
-    private fun liveUpdateNotification(builder: Notification.Builder, f: Island.Frame): Notification {
+    private fun liveUpdateNotification(builder: Notification.Builder, w: Workout, f: Island.Frame): Notification {
+        val title = getString(
+            when (f.phase) {
+                Island.Phase.SET -> R.string.live_set
+                Island.Phase.REST -> R.string.live_rest
+                Island.Phase.OVER -> R.string.live_over
+            },
+        )
         builder.setSmallIcon(Island.smallIcon(this, f))
-            .addExtras(Bundle().apply { putBoolean(EXTRA_REQUEST_PROMOTED_ONGOING, true) })
+            .setContentTitle(title)
+            .setShowWhen(false)
+            .setUsesChronometer(false)
+            .addExtras(
+                Bundle().apply {
+                    putBoolean(EXTRA_REQUEST_PROMOTED_ONGOING, true)
+                    // 卡片左上角用会变的小图标（杠铃片数 = 第几组），不用固定的应用图标；系统因此会在标题后接上应用名
+                    putBoolean(EXTRA_PREFER_SMALL_ICON, true)
+                },
+            )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
-            builder.setShortCriticalText(if (powerManager.isInteractive) f.time else getString(f.phase.label))
+            builder.setShortCriticalText(if (powerManager.isInteractive) f.time else title)
+        }
+        val restEnd = w.state.phaseStartedAt + w.restMs
+        val timer = when (f.phase) {
+            Island.Phase.SET -> getString(R.string.metric_set) to
+                LiveMetric.Value.Timer(w.state.phaseStartedAt, countDown = false)
+            // 系统倒计时向下取整，推后 999 毫秒与应用内的向上取整一致（同 Island.frame）
+            Island.Phase.REST -> getString(R.string.metric_rest) to LiveMetric.Value.Timer(restEnd + 999L, countDown = true)
+            Island.Phase.OVER -> getString(R.string.metric_over) to LiveMetric.Value.Timer(restEnd, countDown = false)
+        }
+        val exerciseLabel = getString(if (f.nextExercise) R.string.label_next_exercise else R.string.label_exercise)
+        val setLabel = getString(if (f.phase == Island.Phase.SET) R.string.label_set else R.string.label_next_set)
+        // 三栏等宽：动作、组两个一位数在前，计时放最后一栏，大号数字右边有余量，不会和旁边一栏挤在一起
+        val metrics = LiveMetric.style(
+            listOf(
+                exerciseLabel to LiveMetric.Value.Number(f.exercise),
+                setLabel to LiveMetric.Value.Number(f.set),
+                timer,
+            ),
+            critical = 2,
+        )
+        if (metrics != null) {
+            builder.setStyle(metrics).setContentText(null)
+        } else {
+            builder.setLargeIcon(Island.timeImage(this, f))
+                .setContentText(getString(R.string.live_position, f.exercise, f.set))
         }
         Island.standardActions(this, f, islandIntents).forEach { builder.addAction(it) }
         return builder.build()
@@ -303,6 +350,9 @@ class TimerService : Service(), WorkoutSession.Listener {
         private const val WAKE_LOCK_MARGIN_MS = 30_000L
         private const val ACTION_GUARD_MS = 700L
         private const val EXTRA_REQUEST_PROMOTED_ONGOING = "android.requestPromotedOngoing"
+
+        /** Notification.EXTRA_PREFER_SMALL_ICON（API 37）：通知头部显示小图标而不是应用图标。 */
+        private const val EXTRA_PREFER_SMALL_ICON = "android.app.preferSmallIcon"
         private const val ACTION_FINISH_SET = "com.heleyi.fitnesstimer.action.FINISH_SET"
         private const val ACTION_FINISH_EXERCISE = "com.heleyi.fitnesstimer.action.FINISH_EXERCISE"
         private const val ACTION_NEXT_SET = "com.heleyi.fitnesstimer.action.NEXT_SET"

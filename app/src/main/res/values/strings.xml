@@ -44,6 +44,18 @@
     <string name="notif_set">训练中 · 动作 %1$d · 第 %2$d 组</string>
     <string name="notif_rest">休息中 · 下一组 动作 %1$d · 第 %2$d 组</string>
     <string name="notif_over">休息结束 · 下一组 动作 %1$d · 第 %2$d 组</string>
+    <!-- 实时更新（岛的展开态、锁屏卡片）：标题直接说状态，阶段靠左边的图标（杠铃 / 沙漏 / 闪电）和右边计时的颜色 -->
+    <!-- 实时更新的标题：一句随阶段变化的短语，后面系统会接上应用名（“Breathe · 间歇片刻”）。
+         训练 Light weight（“轻松拿下”，健身圈的经典口号）/ 休息 Breathe（组间喘口气）/
+         休息超时 Ready when you are（休息够了，准备好就开始，不催） -->
+    <string name="live_set">Light weight</string>
+    <string name="live_rest">Breathe</string>
+    <string name="live_over">Ready when you are</string>
+    <string name="live_position">动作 %1$d · 第 %2$d 组</string>
+    <!-- 实时更新（Android 17）并排指标的标签：计时 / 动作 / 组（动作和组的标签复用 label_*） -->
+    <string name="metric_set">训练</string>
+    <string name="metric_rest">休息</string>
+    <string name="metric_over">超时</string>
     <string name="island_set">第%d组</string>
     <string name="island_cd">%1$s，%2$s</string>
 
