@@ -21,8 +21,8 @@ android {
         applicationId = "com.heleyi.fitnesstimer"
         minSdk = 33 // Android 13+
         targetSdk = 36
-        versionCode = 11
-        versionName = "1.0"
+        versionCode = 12
+        versionName = "1.1"
     }
 
     signingConfigs {
