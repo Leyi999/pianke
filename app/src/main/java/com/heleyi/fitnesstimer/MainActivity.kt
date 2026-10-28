@@ -1,16 +1,20 @@
 package com.heleyi.fitnesstimer
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
@@ -18,10 +22,11 @@ import android.widget.TextView
 import android.widget.ToggleButton
 import android.window.OnBackInvokedCallback
 import android.window.OnBackInvokedDispatcher
+import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 
 /**
- * 唯一界面。未开始：组间休息调节 + 开始训练。
+ * 主界面。未开始：组间休息调节 + 开始训练；下面显示最近的训练情况，右上角和这里都能进入训练记录（[HistoryActivity]）。
  * 训练中：显示第几个动作、第几组；完成一组后开始休息倒计时，归零时提醒，之后继续计时显示多休息了多久。
  * 分屏等矮窗口里自动收紧布局，计时圆环始终可见，见 [updateLayoutMode]。
  */
@@ -35,6 +40,9 @@ class MainActivity : Activity(), WorkoutSession.Listener {
     private lateinit var idleValue: TextView
     private lateinit var idleButtons: View
     private lateinit var idleHint: View
+    private lateinit var idleRecent: View
+    private lateinit var recentWeek: TextView
+    private lateinit var recentLast: TextView
     private lateinit var trainingPanel: View
     private lateinit var stage: LinearLayout
     private lateinit var ringFrame: View
@@ -44,6 +52,7 @@ class MainActivity : Activity(), WorkoutSession.Listener {
     private lateinit var toggleVibrate: ToggleButton
     private lateinit var btnUndo: ImageButton
     private lateinit var btnEnd: Button
+    private lateinit var btnHistory: Button
     private lateinit var ring: RingView
     private lateinit var phaseLabel: TextView
     private lateinit var timerText: TextView
@@ -59,9 +68,16 @@ class MainActivity : Activity(), WorkoutSession.Listener {
 
     private var hasVibrator = true
     private var endDialog: AlertDialog? = null
+    private var endPicker: PartPicker? = null
     private var lastActionAt = Long.MIN_VALUE / 2
     private val backCallback = OnBackInvokedCallback { confirmEnd() }
     private var backIntercepting = false
+
+    /** 有没有训练记录：有就把提示文字换成最近的训练情况。 */
+    private var hasRecent = false
+
+    /** 矮窗口（分屏）：收起提示文字 / 最近训练，见 [updateLayoutMode]。 */
+    private var compactLayout = false
 
     /** 根布局除去系统栏后的可用高度（像素），变化时重新选择布局，见 [updateLayoutMode]。 */
     private var lastAvailHeight = -1
@@ -81,6 +97,9 @@ class MainActivity : Activity(), WorkoutSession.Listener {
         idleValue = findViewById(R.id.idleValue)
         idleButtons = findViewById(R.id.idleButtons)
         idleHint = findViewById(R.id.idleHint)
+        idleRecent = findViewById(R.id.idleRecent)
+        recentWeek = findViewById(R.id.recentWeek)
+        recentLast = findViewById(R.id.recentLast)
         trainingPanel = findViewById(R.id.trainingPanel)
         stage = findViewById(R.id.stage)
         ringFrame = findViewById(R.id.ringFrame)
@@ -90,6 +109,7 @@ class MainActivity : Activity(), WorkoutSession.Listener {
         toggleVibrate = findViewById(R.id.toggleVibrate)
         btnUndo = findViewById(R.id.btnUndo)
         btnEnd = findViewById(R.id.btnEnd)
+        btnHistory = findViewById(R.id.btnHistory)
         ring = findViewById(R.id.ring)
         phaseLabel = findViewById(R.id.phaseLabel)
         timerText = findViewById(R.id.timerText)
@@ -122,9 +142,16 @@ class MainActivity : Activity(), WorkoutSession.Listener {
         btnSecondary.setOnClickListener { if (debounce()) WorkoutSession.nextExercise() }
         btnUndo.setOnClickListener { if (debounce()) WorkoutSession.undo() }
         btnEnd.setOnClickListener { confirmEnd() }
+        btnHistory.setOnClickListener { openHistory() }
+        idleRecent.setOnClickListener { openHistory() }
+        idleRecent.accessibilityDelegate =
+            ActionLabels(AccessibilityNodeInfo.ACTION_CLICK to getString(R.string.recent_open))
 
         WorkoutSession.restoreIfNeeded(this)
-        if (savedInstanceState?.getBoolean(STATE_END_DIALOG) == true) confirmEnd()
+        if (savedInstanceState?.getBoolean(STATE_END_DIALOG) == true) {
+            val parts = savedInstanceState.getStringArrayList(STATE_END_PARTS).orEmpty().mapNotNull(BodyPart::of)
+            confirmEnd(parts.toSet())
+        }
     }
 
     override fun onStart() {
@@ -143,6 +170,7 @@ class MainActivity : Activity(), WorkoutSession.Listener {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean(STATE_END_DIALOG, endDialog?.isShowing == true)
+        endPicker?.let { picker -> outState.putStringArrayList(STATE_END_PARTS, ArrayList(picker.selected.map { it.key })) }
     }
 
     override fun onDestroy() {
@@ -200,6 +228,7 @@ class MainActivity : Activity(), WorkoutSession.Listener {
         trainingPanel.visibility = View.VISIBLE
         btnUndo.visibility = View.VISIBLE
         btnEnd.visibility = View.VISIBLE
+        btnHistory.visibility = View.GONE
         btnUndo.isEnabled = w.canUndo
 
         // 训练中：白；休息倒计时：灰；超时：白（圆环整圈呼吸）
@@ -269,10 +298,37 @@ class MainActivity : Activity(), WorkoutSession.Listener {
         trainingPanel.visibility = View.GONE
         btnUndo.visibility = View.GONE
         btnEnd.visibility = View.GONE
+        btnHistory.visibility = View.VISIBLE
         btnSecondary.visibility = View.GONE
         btnPrimary.setTextIfChanged(getString(R.string.start))
         setKeepScreenOn(false)
         setBackIntercept(false)
+        showRecent()
+    }
+
+    private fun openHistory() {
+        if (debounce()) startActivity(Intent(this, HistoryActivity::class.java)) // 连点只打开一次
+    }
+
+    /** 未开始界面的最近训练：本周练了几次、上次练了什么。还没有记录时显示原来的提示文字。 */
+    private fun showRecent() {
+        val records = History(this).load()
+        hasRecent = records.isNotEmpty()
+        if (hasRecent) {
+            val format = RecordFormat(this)
+            val weekStart = format.today.with(TemporalAdjusters.previousOrSame(RecordFormat.firstDayOfWeek()))
+            val thisWeek = records.count { !format.date(it).isBefore(weekStart) }
+            recentWeek.text = if (thisWeek > 0) getString(R.string.recent_week, thisWeek) else getString(R.string.recent_week_none)
+            val last = records.first()
+            recentLast.text = getString(R.string.recent_last, format.relativeDay(format.date(last)), format.summary(last))
+        }
+        updateIdleExtras()
+    }
+
+    /** 提示文字和最近训练二选一；矮窗口里都收起，给 − / + 按钮留位置。 */
+    private fun updateIdleExtras() {
+        idleHint.visibility = if (!compactLayout && !hasRecent) View.VISIBLE else View.GONE
+        idleRecent.visibility = if (!compactLayout && hasRecent) View.VISIBLE else View.GONE
     }
 
     private fun twoDigits(n: Int): String = String.format(Locale.ROOT, "%02d", n)
@@ -282,7 +338,7 @@ class MainActivity : Activity(), WorkoutSession.Listener {
      * - 够高：圆环在上，动作 / 组和组间休息调节在下；
      * - 矮（如上下分屏的一半）：圆环在左、动作 / 组在右，收起组间休息调节（全屏时再调）；
      * - 更矮（如三分之一分屏）：再收起顶栏的响铃 / 震动 / 撤销 / 结束。
-     * 未开始界面同样依次收起提示文字、缩小数值，让 − / + 按钮留在屏幕上。
+     * 未开始界面同样依次收起提示文字（或最近训练）、缩小数值，让 − / + 按钮留在屏幕上。
      */
     private fun updateLayoutMode(availPx: Int) {
         val density = resources.displayMetrics.density
@@ -312,7 +368,8 @@ class MainActivity : Activity(), WorkoutSession.Listener {
 
         // 未开始：中部可用高度 = 总高度 − 顶栏 − 底部按钮
         val content = avail - (if (mini) 0f else TOP_BAR_DP) - BOTTOM_BAR_DP
-        idleHint.visibility = if (compact) View.GONE else View.VISIBLE
+        compactLayout = compact
+        updateIdleExtras()
         idleLabel.visibility = if (mini) View.GONE else View.VISIBLE
         (idleButtons.layoutParams as ViewGroup.MarginLayoutParams).topMargin = px(if (compact) 12f else 24f)
         idleValue.layoutParams.height = if (compact) {
@@ -356,16 +413,29 @@ class MainActivity : Activity(), WorkoutSession.Listener {
         return true
     }
 
-    /** 结束确认；对话框显示期间计时照常进行。 */
-    private fun confirmEnd() {
+    /**
+     * 结束确认；对话框显示期间计时照常进行。完成过组的可以顺手选练了哪些部位（可不选），一起记进训练记录。
+     * @param initialParts 界面重建后恢复之前选的部位
+     */
+    @SuppressLint("InflateParams") // 对话框的内容没有父布局
+    private fun confirmEnd(initialParts: Set<BodyPart> = emptySet()) {
         val w = WorkoutSession.workout ?: return
         if (endDialog?.isShowing == true) return
         val elapsed = TimeFormat.hhmmss(w.totalElapsedMs(WorkoutSession.now()))
-        endDialog = AlertDialog.Builder(this)
+        val builder = AlertDialog.Builder(this)
             .setTitle(R.string.end_title)
-            .setMessage(getString(R.string.end_message, w.exercisesDone, w.state.completedSets, elapsed))
-            .setPositiveButton(R.string.end_ok) { _, _ -> WorkoutSession.stop() }
+            .setMessage(getString(R.string.end_message, w.state.exercisesDone, w.state.completedSets, elapsed))
             .setNegativeButton(R.string.end_cancel, null)
+        val picker = if (w.state.completedSets > 0) {
+            val view = LayoutInflater.from(builder.context).inflate(R.layout.dialog_end_parts, null)
+            builder.setView(view)
+            PartPicker(view.findViewById(R.id.parts), initialParts)
+        } else {
+            null // 一组都没完成不会记录，不用选
+        }
+        endPicker = picker
+        endDialog = builder
+            .setPositiveButton(R.string.end_ok) { _, _ -> WorkoutSession.stop(picker?.selected.orEmpty()) }
             .show()
     }
 
@@ -392,6 +462,7 @@ class MainActivity : Activity(), WorkoutSession.Listener {
     private companion object {
         const val REQUEST_NOTIFICATIONS = 1
         const val STATE_END_DIALOG = "end_dialog_showing"
+        const val STATE_END_PARTS = "end_dialog_parts"
         const val ACTION_DEBOUNCE_MS = 700L
         const val TIMER_TEXT_RATIO = 0.23f
 

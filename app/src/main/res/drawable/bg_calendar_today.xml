@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 月历上的今天（还没练）：空心圆圈 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:width="34dp"
+        android:height="34dp"
+        android:gravity="center">
+        <shape android:shape="oval">
+            <stroke
+                android:width="1.5dp"
+                android:color="@color/text_dim" />
+        </shape>
+    </item>
+</layer-list>

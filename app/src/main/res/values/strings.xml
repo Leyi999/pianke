@@ -38,6 +38,93 @@
     <string name="end_message">已练 %1$d 个动作，共完成 %2$d 组，用时 %3$s。</string>
     <string name="end_ok">结束</string>
     <string name="end_cancel">继续训练</string>
+    <string name="end_parts_label">练了哪些部位（可不选）</string>
+
+    <!-- 训练部位：结束时、记录详情里多选，显示在记录卡片上 -->
+    <string name="part_chest">胸</string>
+    <string name="part_back">背</string>
+    <string name="part_shoulders">肩</string>
+    <string name="part_legs">腿</string>
+    <string name="part_arms">手臂</string>
+    <string name="part_core">核心</string>
+    <string name="part_full_body">全身</string>
+    <string name="part_separator">、</string>
+
+    <!-- 未开始界面：有记录后，提示文字换成最近的训练情况，点一下进训练记录 -->
+    <string name="recent_week">本周已练 %d\u00A0次</string>
+    <string name="recent_week_none">本周还没练</string>
+    <string name="recent_last">上次：%1$s · %2$s</string>
+    <string name="recent_open">查看训练记录</string>
+
+    <!-- 训练记录：未开始界面右上角进入；每月一个标题（年月 + 次数），下面每次训练一张卡片，点开看详情，长按删除 -->
+    <string name="history">记录</string>
+    <string name="history_title">训练记录</string>
+    <string name="back">返回</string>
+    <string name="history_empty">还没有训练记录</string>
+    <string name="history_empty_hint">结束训练后会自动记在这里</string>
+    <string name="history_month">%1$d年%2$d月</string>
+    <string name="history_month_count">%d 次</string>
+    <string name="cd_history_month">%1$s，%2$d 次训练</string>
+    <string name="history_date">%1$d月%2$d日</string>
+    <string name="history_today">今天</string>
+    <string name="history_yesterday">昨天</string>
+    <string-array name="weekdays">
+        <item>周一</item>
+        <item>周二</item>
+        <item>周三</item>
+        <item>周四</item>
+        <item>周五</item>
+        <item>周六</item>
+        <item>周日</item>
+    </string-array>
+    <!-- 数字和单位之间用不换行空格（\u00A0），折行时“15 组”不会被拆开 -->
+    <string name="history_summary">%1$d\u00A0个动作 · %2$d\u00A0组</string>
+    <!-- 部位 · 动作数 · 组数 -->
+    <string name="history_summary_parts">%1$s · %2$d\u00A0个动作 · %3$d\u00A0组</string>
+    <!-- 开始时间 · 用时 -->
+    <string name="history_detail">%1$s · 用时 %2$s</string>
+    <!-- 读屏和删除确认框用的完整描述，各段用逗号连起来：日期 星期 开始时间，部位，动作数，组数，用时，备注 -->
+    <string name="cd_record_when">%1$s %2$s %3$s</string>
+    <string name="cd_record_exercises">%d\u00A0个动作</string>
+    <string name="cd_record_sets">%d\u00A0组</string>
+    <string name="cd_record_duration">用时\u00A0%s</string>
+    <string name="cd_record_note">备注：%s</string>
+    <string name="cd_record_separator">，</string>
+    <string name="history_open">查看详情</string>
+    <string name="history_delete">删除</string>
+    <string name="history_delete_title">删除这条记录？</string>
+    <string name="history_delete_cancel">取消</string>
+
+    <!-- 记录详情：点卡片打开，可以改部位和备注 -->
+    <string name="record_title">%1$d月%2$d日 %3$s</string>
+    <string name="record_title_year">%1$d年%2$d月%3$d日 %4$s</string>
+    <!-- 开始 – 结束 · 用时（和结束确认框一样精确到秒） -->
+    <string name="record_time">%1$s – %2$s · 用时 %3$s</string>
+    <string name="record_per_exercise">各动作组数：%s</string>
+    <string name="record_per_exercise_separator">" · "</string>
+    <string name="record_auto_ended">没点“结束”，结束时间按最后一次操作算</string>
+    <string name="record_parts_label">练了哪些部位</string>
+    <string name="record_note_label">备注</string>
+    <string name="record_note_hint">例如：卧推 60kg × 8</string>
+    <string name="record_save">保存</string>
+
+    <!-- 记录页顶部的月历：练过的日子标出来，点一下列表滚到那天的记录 -->
+    <string-array name="weekdays_short">
+        <item>一</item>
+        <item>二</item>
+        <item>三</item>
+        <item>四</item>
+        <item>五</item>
+        <item>六</item>
+        <item>日</item>
+    </string-array>
+    <string name="calendar_prev">上个月</string>
+    <string name="calendar_next">下个月</string>
+    <string name="calendar_summary">%1$d\u00A0次训练 · %2$d\u00A0组</string>
+    <string name="calendar_none">这个月没有训练</string>
+    <string name="cd_calendar_day">%1$d月%2$d日，%3$d\u00A0次训练</string>
+    <string name="calendar_show_day">查看这天的记录</string>
+    <string name="calendar_this_month">回到本月</string>
 
     <string name="channel_name">训练计时</string>
     <string name="channel_desc">训练进行中显示当前动作、组数和计时</string>

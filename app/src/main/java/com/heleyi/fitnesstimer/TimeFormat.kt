@@ -43,4 +43,10 @@ object TimeFormat {
             else -> res.getString(R.string.duration_s, s)
         }
     }
+
+    /** 训练记录里的用时：满 1 分钟按分钟四舍五入（“52分钟”“1小时5分钟”），不足 1 分钟显示秒。 */
+    fun workoutDuration(res: Resources, ms: Long): String {
+        val s = (ms / 1000L).coerceAtLeast(0L)
+        return human(res, if (s < 60L) s else (s + 30L) / 60L * 60L)
+    }
 }

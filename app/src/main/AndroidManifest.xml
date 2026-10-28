@@ -33,6 +33,13 @@
             </intent-filter>
         </activity>
 
+        <!-- 训练记录，只从主界面进入 -->
+        <activity
+            android:name=".HistoryActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity" />
+
         <service
             android:name=".TimerService"
             android:exported="false"

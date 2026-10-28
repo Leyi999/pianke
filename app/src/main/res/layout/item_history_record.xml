@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 一次训练：左边几号 + 星期（今天 / 昨天），右边部位 · 动作数 · 组数，下面开始时间 · 用时，有备注时再加一行。
+     点开看详情，长按删除；读屏读整张卡片的 contentDescription，里面的文字不再单独读 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_card"
+    android:baselineAligned="false"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="12dp"
+    android:paddingTop="14dp"
+    android:paddingEnd="20dp"
+    android:paddingBottom="14dp">
+
+    <!-- 宽度至少 48dp，各行的分隔线对齐；字体调大时跟着变宽，不会把“26”折成两行 -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:importantForAccessibility="noHideDescendants"
+        android:minWidth="48dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/day"
+            style="@style/HistoryDay" />
+
+        <TextView
+            android:id="@+id/weekday"
+            style="@style/HistoryWeekday" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="32dp"
+        android:layout_marginStart="12dp"
+        android:background="@color/hairline" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_weight="1"
+        android:importantForAccessibility="noHideDescendants"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/summary"
+            style="@style/HistorySummary" />
+
+        <TextView
+            android:id="@+id/detail"
+            style="@style/HistoryDetail" />
+
+        <TextView
+            android:id="@+id/note"
+            style="@style/HistoryNote"
+            android:visibility="gone" />
+    </LinearLayout>
+</LinearLayout>

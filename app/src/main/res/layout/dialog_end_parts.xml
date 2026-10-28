@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 结束确认框的下半部分（完成过组时才有）：顺手选练了哪些部位，可以不选，一起记进这次的训练记录 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="?android:attr/dialogPreferredPadding"
+    android:paddingTop="4dp"
+    android:paddingEnd="?android:attr/dialogPreferredPadding">
+
+    <TextView
+        style="@style/FieldLabel"
+        android:text="@string/end_parts_label" />
+
+    <LinearLayout
+        android:id="@+id/parts"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="vertical" />
+</LinearLayout>

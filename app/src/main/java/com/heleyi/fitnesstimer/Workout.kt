@@ -14,7 +14,20 @@ data class WorkoutState(
     val completedSets: Int = 0,
     /** 仅休息中有效：下一组是否换到下一个动作（休息继续，不打断倒计时）。 */
     val nextNewExercise: Boolean = false,
-)
+    /** 之前每个动作完成的组数（不含当前动作）；从没有这项数据的旧版本恢复时为 null，不记明细。 */
+    val earlierSets: List<Int>? = emptyList(),
+) {
+    /** 已练过的动作数（当前动作至少完成一组才计入）。 */
+    val exercisesDone: Int
+        get() = if (resting || set > 1) exercise else exercise - 1
+
+    /** 每个动作完成的组数，例如 [4, 4, 3]（当前动作至少完成一组才计入）；不知道时为 null。 */
+    val setsPerExercise: List<Int>?
+        get() {
+            val current = if (resting) set else set - 1
+            return if (current > 0) earlierSets?.plus(current) else earlierSets
+        }
+}
 
 /**
  * 训练状态机（纯逻辑）：训练中 —完成本组→ 组间休息（倒计时，归零后继续正计时）
@@ -45,10 +58,8 @@ class Workout(initial: WorkoutState, restMs: Long, now: Long) {
 
     fun totalElapsedMs(now: Long): Long = (now - state.startedAt).coerceAtLeast(0L)
 
-    /** 已练过的动作数（当前动作至少完成一组才计入）。 */
-    val exercisesDone: Int
-        get() = if (state.resting || state.set > 1) state.exercise else state.exercise - 1
-
+    /** 超过 [ABANDON_AFTER_MS] 没有操作（休息超时，或一组开始后一直没点完成），当作忘了点结束。 */
+    fun isAbandoned(now: Long): Boolean = phaseElapsedMs(now) >= ABANDON_AFTER_MS
 
     /** 完成本组。nextExercise = true：这是本动作的最后一组，休息后换到下个动作的第 1 组（一步即可撤销）。 */
     fun finishSet(now: Long, nextExercise: Boolean = false) {
@@ -72,13 +83,14 @@ class Workout(initial: WorkoutState, restMs: Long, now: Long) {
             else -> state.set + 1
         }
 
-    /** 结束休息，开始“下一组”。 */
+    /** 结束休息，开始“下一组”；换到下个动作时记下刚练完的动作做了几组。 */
     fun startNextSet(now: Long) {
         if (!state.resting) return
         push()
         state = state.copy(
             resting = false, exercise = upcomingExercise, set = upcomingSet,
             phaseStartedAt = now, nextNewExercise = false,
+            earlierSets = if (state.nextNewExercise) state.earlierSets?.plus(state.set) else state.earlierSets,
         )
         alertArmed = false
     }
@@ -91,7 +103,10 @@ class Workout(initial: WorkoutState, restMs: Long, now: Long) {
         if (!state.resting) return
         if (!state.nextNewExercise && isOvertime(now)) {
             push()
-            state = state.copy(resting = false, exercise = state.exercise + 1, set = 1, phaseStartedAt = now)
+            state = state.copy(
+                resting = false, exercise = state.exercise + 1, set = 1, phaseStartedAt = now,
+                earlierSets = state.earlierSets?.plus(state.set),
+            )
             alertArmed = false
             return
         }
@@ -136,7 +151,10 @@ class Workout(initial: WorkoutState, restMs: Long, now: Long) {
         if (history.size > MAX_UNDO) history.removeFirst()
     }
 
-    private companion object {
-        const val MAX_UNDO = 100
+    companion object {
+        private const val MAX_UNDO = 100
+
+        /** 多久没有操作就自动结束训练（应用在后台被回收后，超过这个时长也不再恢复）。 */
+        const val ABANDON_AFTER_MS = 30 * 60 * 1000L
     }
 }

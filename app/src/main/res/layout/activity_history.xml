@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 训练记录：顶栏（返回 + 标题）、按月分组的记录列表；还没有记录时显示空状态 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingEnd="20dp">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            style="@style/IconButton"
+            android:contentDescription="@string/back"
+            android:src="@drawable/ic_back" />
+
+        <TextView
+            style="@style/ScreenTitle"
+            android:layout_marginStart="4dp"
+            android:text="@string/history_title" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- 卡片之间的间距用透明分隔线；左右留白放在列表的 padding 里，滚动条贴着屏幕边缘。
+             第一项是月历（表头，见 view_history_calendar） -->
+        <ListView
+            android:id="@+id/list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:divider="@android:color/transparent"
+            android:dividerHeight="8dp"
+            android:listSelector="@android:color/transparent"
+            android:paddingStart="20dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="20dp"
+            android:scrollbarStyle="outsideOverlay" />
+
+        <!-- 底部留出顶栏的高度，让空状态在整个屏幕上居中 -->
+        <LinearLayout
+            android:id="@+id/empty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingBottom="64dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/history_empty"
+                android:textColor="@color/text"
+                android:textSize="17sp" />
+
+            <TextView
+                style="@style/Hint"
+                android:layout_marginTop="8dp"
+                android:text="@string/history_empty_hint" />
+        </LinearLayout>
+    </FrameLayout>
+</LinearLayout>

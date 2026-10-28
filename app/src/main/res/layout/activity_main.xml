@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 唯一界面：顶栏（响铃 / 震动 / 撤销 / 结束）、中部（未开始：组间休息；训练中：圆环计时 + 动作/组）、底部按钮 -->
+<!-- 主界面：顶栏（响铃 / 震动；训练中撤销 / 结束，未开始时训练记录）、中部（未开始：组间休息；训练中：圆环计时 + 动作/组）、底部按钮 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/root"
@@ -46,6 +46,12 @@
             style="@style/TextButton"
             android:layout_marginStart="4dp"
             android:text="@string/end" />
+
+        <!-- 未开始时才显示，和训练中的“结束”在同一位置 -->
+        <Button
+            android:id="@+id/btnHistory"
+            style="@style/TextButton"
+            android:text="@string/history" />
     </LinearLayout>
 
     <FrameLayout
@@ -53,7 +59,7 @@
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <!-- 未开始：只有组间休息调节 -->
+        <!-- 未开始：组间休息调节；下面是提示文字，有训练记录后换成最近的训练情况（点一下进训练记录） -->
         <LinearLayout
             android:id="@+id/idlePanel"
             android:layout_width="match_parent"
@@ -95,6 +101,29 @@
                 style="@style/Hint"
                 android:layout_marginTop="40dp"
                 android:text="@string/idle_hint" />
+
+            <LinearLayout
+                android:id="@+id/idleRecent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:background="@drawable/bg_text_button"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:paddingStart="20dp"
+                android:paddingTop="12dp"
+                android:paddingEnd="20dp"
+                android:paddingBottom="12dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/recentWeek"
+                    style="@style/RecentWeek" />
+
+                <TextView
+                    android:id="@+id/recentLast"
+                    style="@style/RecentLast" />
+            </LinearLayout>
         </LinearLayout>
         <!-- 训练中。窗口矮（分屏）时 stage 改为横排：圆环在左、动作/组在右，再矮依次收起组间休息调节和顶栏，见 MainActivity.updateLayoutMode -->
         <LinearLayout
